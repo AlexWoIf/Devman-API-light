@@ -11,7 +11,6 @@ DVMN_TOKEN = env.str('DVMN_TOKEN')
 TG_BOT_TOKEN = env.str('TG_BOT_TOKEN')
 TG_CHAT_ID = env.str('TG_CHAT_ID')
 
-REVIEWS_URL = 'https://dvmn.org/api/user_reviews/'
 POLLING_URL = 'https://dvmn.org/api/long_polling/'
 
 CONNECTION_ERROR_DELAY = 90
@@ -54,9 +53,8 @@ if __name__ == '__main__':
         message = "Статус некоторых проверок изменился! " \
                   "Детали из ответа сервера:\n"
         for attempt in changes["new_attempts"]:
-            message += f'Название урока: {attempt["lesson_title"]}\n'
-            message += f'Ссылка на урок: {attempt["lesson_url"]}\n'
-            message += f'Задание {"не" if attempt["is_negative"] else ""}' \
-                       'принято'
+            message += f'Название урока: {attempt["lesson_title"]}\n' \
+                f'Ссылка на урок: {attempt["lesson_url"]}\n' \
+                f'Задание {"не" if attempt["is_negative"] else ""}принято'
 
         bot.send_message(text=message, chat_id=TG_CHAT_ID)
