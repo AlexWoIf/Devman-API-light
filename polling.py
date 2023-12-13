@@ -16,9 +16,9 @@ POLLING_URL = 'https://dvmn.org/api/long_polling/'
 CONNECTION_ERROR_DELAY = 90
 
 
-def start_devman_polling(dvmn_token):
-    params = {}
-    headers = {"Authorization": f"Token {dvmn_token}", }
+def start_devman_polling(timestamp):
+    params = {'timestamp': timestamp}
+    headers = {"Authorization": f"Token {DVMN_TOKEN}", }
     while True:
         print(f"Запрашиваем наличие изменений. {params}")
         try:
@@ -47,14 +47,15 @@ def start_devman_polling(dvmn_token):
 
 if __name__ == '__main__':
     bot = telegram.Bot(token=f'{TG_BOT_TOKEN}')
+    timestamp = None
     while True:
-        changes = start_devman_polling(DVMN_TOKEN)
-
+        changes = start_devman_polling(timestamp)
         message = "Статус некоторых проверок изменился! " \
                   "Детали из ответа сервера:\n"
         for attempt in changes["new_attempts"]:
             message += f'Название урока: {attempt["lesson_title"]}\n' \
                 f'Ссылка на урок: {attempt["lesson_url"]}\n' \
                 f'Задание {"не" if attempt["is_negative"] else ""}принято'
-
         bot.send_message(text=message, chat_id=TG_CHAT_ID)
+
+        timestamp = changes['last_attempt_timestamp']
