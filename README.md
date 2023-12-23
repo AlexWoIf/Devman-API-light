@@ -21,9 +21,10 @@ pip install -r requirements.txt
 
 Следующие параметры нужно внести в файл `.env` до запуска бота:
 
-- BOT_TOKEN=<получите у [**BotFather**](https://telegram.me/BotFather)>
+- TG_BOT_TOKEN=<получите у [**BotFather**](https://telegram.me/BotFather)>
+- TG_CHAT_ID=<узнайте свой ID у [**userinfobot**](https://telegram.me/userinfobot)>
 - DVMN_TOKEN=<нужно скопировать со [страницы документации по API Девмана](https://dvmn.org/api/docs/)>
-- CHAT_ID=<узнайте свой ID у [**userinfobot**](https://telegram.me/userinfobot)>
+- LOG_LEVEL=[NOTSET|DEBUG|(INFO)|WARN|ERROR|CRITICAL] необязательный параметр. По умолчанию - INFO.
 
 Так же не забудьте перед запуском добавить себе в контакт-лист созданного Вами бота и отправьте ему любое сообщение.
 

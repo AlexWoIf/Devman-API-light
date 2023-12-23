@@ -1,61 +1,61 @@
+import logging
 import requests
-from time import sleep
 import telegram
-from environs import Env
+from requests.exceptions import ConnectionError, ReadTimeout
+from retry import retry
 
+from settings import DvmnSettings, LogSettings, TgSettings
 
-env = Env()
-env.read_env()
-
-DVMN_TOKEN = env.str('DVMN_TOKEN')
-TG_BOT_TOKEN = env.str('TG_BOT_TOKEN')
-TG_CHAT_ID = env.str('TG_CHAT_ID')
 
 POLLING_URL = 'https://dvmn.org/api/long_polling/'
 
-CONNECTION_ERROR_DELAY = 90
+
+@retry((ReadTimeout, ConnectionError), delay=1, max_delay=3600, backoff=2)
+def persistent_request(url, params, headers):
+    logger.info(f'Send request with {params=}')
+    response = requests.get(url, params=params, headers=headers, )
+    response.raise_for_status()
+    logger.info(f"Получили ответ. {response.json()=}")
+    return response
 
 
-def start_devman_polling(timestamp):
-    params = {'timestamp': timestamp}
-    headers = {"Authorization": f"Token {DVMN_TOKEN}", }
+def check_status(dvmn_token):
+    params = {}
+    headers = {"Authorization": f"Token {dvmn_token}", }
     while True:
-        print(f"Запрашиваем наличие изменений. {params}")
-        try:
-            res = requests.get(
-                POLLING_URL,
-                headers=headers,
-                params=params, )
-            res.raise_for_status()
-        except requests.exceptions.ReadTimeout:
-            continue
-        except requests.exceptions.ConnectionError:
-            sleep(CONNECTION_ERROR_DELAY)
-            continue
-
-        answer = res.json()
-        match answer['status']:
+        response = persistent_request(POLLING_URL, params, headers, )
+        payload = response.json()
+        match payload['status']:
             case 'timeout':
-                params['timestamp'] = answer['timestamp_to_request']
+                params['timestamp'] = payload['timestamp_to_request']
                 continue
             case 'found':
-                return answer
+                params['timestamp'] = payload['last_attempt_timestamp']
+                yield payload["new_attempts"]
             case _:
                 raise Exception('Неизвестный статус ответа.'
-                                f'Ответ сервера: {answer}')
+                                f'Ответ сервера: {payload}')
 
 
 if __name__ == '__main__':
-    bot = telegram.Bot(token=f'{TG_BOT_TOKEN}')
-    timestamp = None
-    while True:
-        changes = start_devman_polling(timestamp)
+    log = LogSettings()
+    logging.basicConfig(
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        level=getattr(logging, log.level.upper(), None),
+    )
+    logger = logging.getLogger(__name__)
+    logger.info('Start logging')
+    tg = TgSettings()
+    dvmn = DvmnSettings()
+    bot = telegram.Bot(token=f'{tg.bot_token}')
+    for changes in check_status(dvmn.token):
         message = "Статус некоторых проверок изменился! " \
                   "Детали из ответа сервера:\n"
-        for attempt in changes["new_attempts"]:
+        for attempt in changes:
+            negation = ''
+            if attempt["is_negative"]:
+                negation = 'не '
             message += f'Название урока: {attempt["lesson_title"]}\n' \
                 f'Ссылка на урок: {attempt["lesson_url"]}\n' \
-                f'Задание {"не" if attempt["is_negative"] else ""}принято'
-        bot.send_message(text=message, chat_id=TG_CHAT_ID)
-
-        timestamp = changes['last_attempt_timestamp']
+                f'Задание {negation}принято'
+        bot.send_message(text=message, chat_id=tg.chat_id)
