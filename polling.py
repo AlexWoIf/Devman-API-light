@@ -12,10 +12,10 @@ POLLING_URL = 'https://dvmn.org/api/long_polling/'
 
 @retry((ReadTimeout, ConnectionError), delay=1, max_delay=3600, backoff=2)
 def persistent_request(url, params, headers):
-    logger.info(f'Send request with {params=}')
+    logger.debug(f'Send request with {params=}')
     response = requests.get(url, params=params, headers=headers, )
     response.raise_for_status()
-    logger.info(f"Получили ответ. {response.json()=}")
+    logger.debug(f"Получили ответ. {response.json()=}")
     return response
 
 
