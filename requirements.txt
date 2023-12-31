@@ -1,4 +1,6 @@
 environs==9.5.*
 retry==0.9.*
 requests==2.31.*
+pydantic==2.5.*
+pydantic-settings==2.1.*
 python-telegram-bot==13.15
